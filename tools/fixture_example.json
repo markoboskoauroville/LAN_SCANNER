@@ -1,0 +1,7 @@
+{"others":[{"iface":"en5","ip":"10.8.0.2","prefix":24,"gateway":"10.8.0.1","title":"Ethernet (en5)"}],
+ "scans":[
+  {"delay":8,"net":{"iface":"en0","ip":"10.9.0.5","prefix":16,"gateway":"10.9.0.1","title":"Fixture Wi-Fi"},"devices":[{"ip":"10.9.0.1","mac":"00:11:22:33:44:01","name":"Fixture Router","maker":"Madeup Co"}]},
+  {"delay":0.5,"net":{"iface":"en0","ip":"10.9.0.5","prefix":16,"gateway":"10.9.0.1","title":"Fixture Wi-Fi"},"devices":[{"ip":"10.9.0.1","mac":"00:11:22:33:44:01","name":"Fixture Router","maker":"Madeup Co"},{"ip":"10.9.0.5","mac":"00:11:22:33:44:05","name":"Fixture Mac"},{"ip":"10.9.0.20","mac":"00:11:22:33:44:20","name":"Fixture TV","maker":"Madeup Co","kind":"TV/Speaker"}]},
+  {"delay":0.5,"net":{"iface":"en0","ip":"10.9.0.5","prefix":16,"gateway":"10.9.0.1","title":"Fixture Wi-Fi"},"devices":[{"ip":"10.9.0.1","mac":"00:11:22:33:44:01","name":"Fixture Router","maker":"Madeup Co"},{"ip":"10.9.0.5","mac":"00:11:22:33:44:05","name":"Fixture Mac"}]},
+  {"delay":0.3,"noNetwork":true}
+ ]}

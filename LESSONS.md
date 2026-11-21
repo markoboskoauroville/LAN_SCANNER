@@ -26,3 +26,4 @@
 
 13. SwiftUI plain Buttons show a focus ring: `.focusEffectDisabled()` on every button and on the root, and `window.makeFirstResponder(nil)` after the window is shown.
 14. Queen v31 is a Swift app + `~/.queen/backend/queen_backend.py` (Python skills, `dispatch()` in queen_python_skills/__init__.py); the legacy `~/.groq/qwen_app/app.py` with `ops_hands.py` is not what v31 runs. The Swift host starts `~/.queen/queen-backend`, which only exists after a clean `install.sh`; a failing install.sh (here the stale api_credit.py line) leaves it missing and port 8766 stays down.
+15. Update swap proven on 21.11.2026 (v2 -> v3): the question appeared, Update pressed through Accessibility (macro ax-press under macro lock), the app came back as v3 by itself, still signed "Mantra Apps" with the same identifier, a scan still found the 4 devices, no macOS prompt.
