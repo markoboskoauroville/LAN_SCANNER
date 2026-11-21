@@ -21,3 +21,8 @@
 10. The update question is only provable with two releases: release vN+1 while vN is installed and started; the alert is a window of the app itself (screencapture -l by id works wherever it is). Do not answer it.
 11. Pure parsers (DNS PTR, UPnP XML, SSDP LOCATION) go into --selftest so CI covers them.
 12. install.sh of groq_ai_studio fails at the end on `api_credit.py`, which is not in the repo (86 gate tests PASS before it).
+- Round 2 (v2): 7 of 10 (Fable). Counted as no: (1) a blue keyboard-focus box around SCAN in every screenshot, and the OTHER NETWORK line was a different size from the header line; (2) the update swap was never run (needs v3 released while v2 is installed, Update pressed through Accessibility); (3) Queen's install: install.sh failed on api_credit.py, her start was not explained.
+- Round 3 (v3): built by the worker, not scored by it.
+
+13. SwiftUI plain Buttons show a focus ring: `.focusEffectDisabled()` on every button and on the root, and `window.makeFirstResponder(nil)` after the window is shown.
+14. Queen v31 is a Swift app + `~/.queen/backend/queen_backend.py` (Python skills, `dispatch()` in queen_python_skills/__init__.py); the legacy `~/.groq/qwen_app/app.py` with `ops_hands.py` is not what v31 runs. The Swift host starts `~/.queen/queen-backend`, which only exists after a clean `install.sh`; a failing install.sh (here the stale api_credit.py line) leaves it missing and port 8766 stays down.

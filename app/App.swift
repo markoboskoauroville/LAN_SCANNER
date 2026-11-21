@@ -3,7 +3,7 @@
 import Cocoa
 import SwiftUI
 
-let VERSION = 2
+let VERSION = 3
 let APP_NAME = "LAN Scanner (Mantra)"
 enum Debug { static var forcePermission = false }
 let LOCAL_NETWORK_PANE = "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork"
@@ -109,14 +109,16 @@ final class ScanState: ObservableObject {
 
 struct HoverWord: View {
     var size: CGFloat = 15
+    var bold = true
     let text: String; let color: Color; let id: String; let label: String; let action: () -> Void
     @State private var hover = false
     var body: some View {
         Button(action: action) {
-            Text(text).font(Look.mono(size, bold: true)).foregroundColor(color).underline(hover)
+            Text(text).font(Look.mono(size, bold: bold)).foregroundColor(color).underline(hover)
                 .padding(.vertical, 6).padding(.horizontal, 2).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusEffectDisabled()
         .onHover { hover = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
@@ -162,6 +164,7 @@ struct Row: View {
             .padding(.vertical, 5).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .focusEffectDisabled()
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { state.copy(d) }
@@ -204,7 +207,7 @@ struct MainView: View {
                     .accessibilityIdentifier("network").accessibilityLabel(state.header)
             }
             ForEach(state.others, id: \.iface) { n in
-                HoverWord(size: 12, text: "OTHER NETWORK \(n.iface)  \(n.ip)/\(n.prefix)", color: Look.dim, id: "net-\(n.iface)", label: "scan \(n.iface)") { state.pick(n) }
+                HoverWord(size: 12, bold: false, text: "OTHER NETWORK \(n.iface)  \(n.ip)/\(n.prefix)", color: Look.dim, id: "net-\(n.iface)", label: "scan \(n.iface)") { state.pick(n) }
             }
             ForEach(state.notes, id: \.self) { Text($0).font(Look.mono(12)).foregroundColor(Look.dim).fixedSize(horizontal: false, vertical: true).padding(.top, 4) }
             if let e = state.error {
@@ -231,6 +234,7 @@ struct MainView: View {
         .padding(.horizontal, 20).padding(.bottom, 12)
         .frame(minWidth: 760, maxWidth: .infinity, minHeight: 340, maxHeight: .infinity, alignment: .topLeading)
         .background(Look.ground)
+        .focusEffectDisabled()
     }
 }
 
@@ -263,8 +267,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let w = makeWindow()
         if !w.setFrameUsingName("LanScannerMainWindow") { w.center() }
         w.makeKeyAndOrderFront(nil)
+        w.makeFirstResponder(nil)                      // nothing is focused at launch: no focus ring
         enforceOneTitle()
-        DispatchQueue.main.async { self.enforceOneTitle() }
+        DispatchQueue.main.async { w.makeFirstResponder(nil); self.enforceOneTitle() }
         state.scan()                                   // a scan runs once when the window opens
         Updater.checkAtStart()
     }
