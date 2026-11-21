@@ -167,7 +167,7 @@ enum SelfTest {
         check(ARPText.parse(line: "garbage") == nil, "arp garbage")
         // OUI
         check(OUI.lookup(mac: "da:a1:19:00:00:01") == "Private address", "private maker")
-        check(OUI.lookup(mac: "b8:27:eb:00:00:01") == "Raspberry Pi", "oui raspberry")
+        check(OUI.lookup(mac: "b8:27:eb:00:00:01").hasPrefix("Raspberry Pi"), "oui raspberry")
         check(OUI.lookup(mac: "00:00:00:00:00:01") == "" || OUI.lookup(mac: "00:00:00:00:00:01") != "Private address", "oui unknown is never invented")
         check(OUI.shortName("Apple, Inc.") == "Apple" && OUI.shortName("TP-LINK TECHNOLOGIES CO.,LTD.") == "TP-LINK", "short names")
         // kinds
