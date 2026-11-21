@@ -14,7 +14,8 @@
 ## Scores
 
 - Round 1 (v1): 6 of 10 (Fable). Counted as no: update at start never exercised; untested paths (STOP, gone rows, wide network cap, second interface, no-network line, PERMISSIONS state, row click-to-copy, --studio-shot); three of four devices had no name (needs mDNS reverse and SSDP/UPnP, a maker-based label instead of "unknown"); fallback OUI table 100 instead of about 300 prefixes; Queen's install gate not run; testclean not run in the foreground; the three public-repo checks not run; TAKEOVER too short; no AX dump in the report. All of it went into v2.
-- Round 2 (v2): built by the worker, not scored by it.
+- Round 2 (v2): 7 of 10 (Fable). Counted as no: a blue keyboard-focus box around SCAN; the update swap never pressed; Queen's install.sh stopping on a stale api_credit.py line.
+- Round 3 (v3, session closed 21.11.2026): 9 of 10 (Fable). Yes now: no focus box; update swap v2 to v3 pressed through AX, came back as v3, still signed Mantra Apps, scan still finds the devices. Still no: point 9, Queen. Her v31 skill (queen_python_skills/lan_scan.py) is installed and passes the gate, but her running backend was not restarted, so she was never asked in her own chat.
 
 ## Lessons from round 1 to 2
 9. A `--fixture` feed is the way to prove window paths without a network: the fake scan goes through the same cap logic, merge and finish() as a real one.
