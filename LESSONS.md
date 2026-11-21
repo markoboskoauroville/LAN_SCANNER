@@ -10,3 +10,14 @@
 6. `arp -an` prints MACs without leading zeros ("0:11:22:aa:bb:cc"): normalise before comparing.
 7. The IEEE list names are long ("TP-Link Systems Inc."): shortName strips legal suffixes only; a maker column needs a wrapping cell.
 8. check_one_title.sh from MANTRA_ROOM expects TopRow.float; a version without that check lives here.
+
+## Scores
+
+- Round 1 (v1): 6 of 10 (Fable). Counted as no: update at start never exercised; untested paths (STOP, gone rows, wide network cap, second interface, no-network line, PERMISSIONS state, row click-to-copy, --studio-shot); three of four devices had no name (needs mDNS reverse and SSDP/UPnP, a maker-based label instead of "unknown"); fallback OUI table 100 instead of about 300 prefixes; Queen's install gate not run; testclean not run in the foreground; the three public-repo checks not run; TAKEOVER too short; no AX dump in the report. All of it went into v2.
+- Round 2 (v2): built by the worker, not scored by it.
+
+## Lessons from round 1 to 2
+9. A `--fixture` feed is the way to prove window paths without a network: the fake scan goes through the same cap logic, merge and finish() as a real one.
+10. The update question is only provable with two releases: release vN+1 while vN is installed and started; the alert is a window of the app itself (screencapture -l by id works wherever it is). Do not answer it.
+11. Pure parsers (DNS PTR, UPnP XML, SSDP LOCATION) go into --selftest so CI covers them.
+12. install.sh of groq_ai_studio fails at the end on `api_credit.py`, which is not in the repo (86 gate tests PASS before it).
