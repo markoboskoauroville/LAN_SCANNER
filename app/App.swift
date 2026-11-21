@@ -108,11 +108,12 @@ final class ScanState: ObservableObject {
 // MARK: view
 
 struct HoverWord: View {
+    var size: CGFloat = 15
     let text: String; let color: Color; let id: String; let label: String; let action: () -> Void
     @State private var hover = false
     var body: some View {
         Button(action: action) {
-            Text(text).font(Look.mono(15, bold: true)).foregroundColor(color).underline(hover)
+            Text(text).font(Look.mono(size, bold: true)).foregroundColor(color).underline(hover)
                 .padding(.vertical, 6).padding(.horizontal, 2).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -136,18 +137,19 @@ struct Cell: View {
 }
 
 struct Columns {
-    static let ip: CGFloat = 112, mac: CGFloat = 136, maker: CGFloat = 120, kind: CGFloat = 78, seen: CGFloat = 66
+    static let ip: CGFloat = 112, mac: CGFloat = 136, maker: CGFloat = 120, kind: CGFloat = 78, seen: CGFloat = 84
 }
 
 struct Row: View {
     let d: Device; let state: ScanState
+    static let g: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
     static let f: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm:ss"; return f }()
     var body: some View {
         let c = d.gone ? Look.dim : Look.ink
         let label = d.isThisMac ? "This Mac" : d.isRouter ? "Router" : ""
         let base = d.displayName
         let name = label.isEmpty ? base : (d.name.isEmpty ? label : "\(d.name) (\(label))")
-        let seen = d.gone ? "gone \(Row.f.string(from: d.seen))" : Row.f.string(from: d.seen)
+        let seen = d.gone ? "gone \(Row.g.string(from: d.seen))" : Row.f.string(from: d.seen)
         Button { state.copy(d) } label: {
             HStack(alignment: .top, spacing: 12) {
                 Cell(text: name, width: nil, color: d.name.isEmpty ? Look.dim : c)
@@ -202,7 +204,7 @@ struct MainView: View {
                     .accessibilityIdentifier("network").accessibilityLabel(state.header)
             }
             ForEach(state.others, id: \.iface) { n in
-                HoverWord(text: "OTHER NETWORK \(n.iface)  \(n.ip)/\(n.prefix)", color: Look.dim, id: "net-\(n.iface)", label: "scan \(n.iface)") { state.pick(n) }
+                HoverWord(size: 12, text: "OTHER NETWORK \(n.iface)  \(n.ip)/\(n.prefix)", color: Look.dim, id: "net-\(n.iface)", label: "scan \(n.iface)") { state.pick(n) }
             }
             ForEach(state.notes, id: \.self) { Text($0).font(Look.mono(12)).foregroundColor(Look.dim).fixedSize(horizontal: false, vertical: true).padding(.top, 4) }
             if let e = state.error {
@@ -227,7 +229,7 @@ struct MainView: View {
             }
         }
         .padding(.horizontal, 20).padding(.bottom, 12)
-        .frame(minWidth: 740, maxWidth: .infinity, minHeight: 340, maxHeight: .infinity, alignment: .topLeading)
+        .frame(minWidth: 760, maxWidth: .infinity, minHeight: 340, maxHeight: .infinity, alignment: .topLeading)
         .background(Look.ground)
     }
 }
@@ -238,7 +240,7 @@ struct MainView: View {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let state = ScanState()
     var window: NSWindow?
-    static let minContent = NSSize(width: 760, height: 360)
+    static let minContent = NSSize(width: 780, height: 360)
 
     func makeWindow() -> NSWindow {
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 560),
