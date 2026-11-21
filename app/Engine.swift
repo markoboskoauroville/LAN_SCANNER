@@ -452,7 +452,7 @@ enum LanScanner {
     static func scan(net: NetInfo?, bonjour: Bonjour?, progress: @escaping (Double, String) -> Void, cancelled: @escaping () -> Bool) -> ScanResult {
         var res = ScanResult()
         guard let net = net else {
-            res.error = "No network: this Mac has no active IPv4 network."
+            res.error = Label.noNetwork
             return res
         }
         res.net = net
@@ -461,7 +461,7 @@ enum LanScanner {
         res.capped = plan.capped
         res.cidr = CIDR.network(ip: own, prefix: net.prefix)
         if plan.capped {
-            res.notes.append("The network is \(res.cidr), too wide: scanned only the /22 around this Mac (\(CIDR.network(ip: own, prefix: plan.scannedPrefix))).")
+            res.notes.append(Label.capNote(cidr: res.cidr, scanned: CIDR.network(ip: own, prefix: plan.scannedPrefix)))
         }
         if plan.hosts.isEmpty { res.error = "Nothing to scan on \(net.iface)."; return res }
         if net.gateway == nil { res.notes.append("No router found for \(net.iface).") }
@@ -516,7 +516,9 @@ enum LanScanner {
         let bj = bonjour?.results() ?? [:]
         let others = byIP.keys.filter { $0 != own }.map { CIDR.string($0) }
         let rdns = Names.reverseAll(others)
-        progress(0.95, "Naming")
+        progress(0.9, "Asking devices for names")
+        let found = cancelled() ? [:] : Probe.run(ips: byIP.keys.filter { $0 != own }.sorted(), net: net, cancelled: cancelled)
+        progress(0.97, "Naming")
         for (v, var d) in byIP {
             let ip = CIDR.string(v)
             if let b = bj[ip] {
@@ -525,6 +527,12 @@ enum LanScanner {
                 if !b.friendly.isEmpty { d.name = b.friendly }
                 else if !b.host.isEmpty { d.name = b.host }
                 else if !b.name.isEmpty { d.name = b.name }
+            }
+            if let f = found[ip] {
+                if d.name.isEmpty, !f.mdns.isEmpty { d.name = f.mdns }
+                if d.name.isEmpty, !f.friendly.isEmpty { d.name = f.friendly }
+                if d.name.isEmpty, !f.model.isEmpty { d.name = f.model }
+                d.upnpType = f.type
             }
             if d.name.isEmpty, let n = rdns[ip] { d.name = n }
             if d.name.isEmpty, let n = sweep.nbNames[v] { d.name = n }

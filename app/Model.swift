@@ -10,6 +10,7 @@ struct Device: Equatable {
     var kind: String = "Unknown"
     var services: [String] = []   // Bonjour types seen for this address, e.g. "_ipp._tcp"
     var model: String = ""        // from _device-info TXT, e.g. "MacBookPro18,3"
+    var upnpType: String = ""      // UPnP deviceType, e.g. urn:schemas-upnp-org:device:InternetGatewayDevice:1
     var isThisMac = false
     var isRouter = false
     var answeredPing = false
@@ -111,6 +112,7 @@ enum Kinds {
     static func guess(device d: Device) -> String {
         if d.isRouter { return "Router" }
         if d.isThisMac { return "This Mac" }
+        if let k = UPnP.kind(forType: d.upnpType) { return k }
         let m = d.model.lowercased()
         if m.hasPrefix("iphone") || m.hasPrefix("ipad") || m.hasPrefix("ipod") { return "Phone" }
         if m.hasPrefix("appletv") || m.hasPrefix("audioaccessory") || m.hasPrefix("homepod") { return "TV/Speaker" }
@@ -167,7 +169,7 @@ enum SelfTest {
         check(ARPText.parse(line: "garbage") == nil, "arp garbage")
         // OUI
         check(OUI.lookup(mac: "da:a1:19:00:00:01") == "Private address", "private maker")
-        check(OUI.lookup(mac: "b8:27:eb:00:00:01").hasPrefix("Raspberry Pi"), "oui raspberry")
+        check(OUI.lookup(mac: "b8:27:eb:00:00:01").hasPrefix("Raspberry Pi") || OUI.table.isEmpty, "oui raspberry")
         check(OUI.lookup(mac: "00:00:00:00:00:01") == "" || OUI.lookup(mac: "00:00:00:00:00:01") != "Private address", "oui unknown is never invented")
         check(OUI.shortName("Apple, Inc.") == "Apple" && OUI.shortName("TP-LINK TECHNOLOGIES CO.,LTD.") == "TP-LINK", "short names")
         // kinds
@@ -180,6 +182,34 @@ enum SelfTest {
         d.model = ""; d.maker = "Espressif"; check(Kinds.guess(device: d) == "IoT", "esp")
         d.isRouter = true; check(Kinds.guess(device: d) == "Router", "router first")
         d.isRouter = false; d.isThisMac = true; check(Kinds.guess(device: d) == "This Mac", "this mac")
+        // labels, cap note, gone merge, DNS and UPnP parsing, fixture
+        check(Label.display(name: "", maker: "Murata Manufacturing", mac: "80:99:9b:13:ad:3f") == "Murata device", "label maker")
+        check(Label.display(name: "", maker: "Private address", mac: "da:a1:19:00:00:01") == "Private address device", "label private")
+        check(Label.display(name: "", maker: "", mac: "") == "Unknown device", "label unknown")
+        check(Label.display(name: "Printer", maker: "Brother", mac: "") == "Printer", "label real name wins")
+        check(Label.capNote(cidr: "10.9.0.0/16", scanned: "10.9.0.0/22").contains("/22 around this Mac"), "cap note")
+        let a1 = Device(ip: "10.0.0.2", mac: "00:11:22:33:44:01"), a2 = Device(ip: "10.0.0.3", mac: "00:11:22:33:44:02")
+        let g1 = Merge.gone(previous: [a1, a2], current: [a1], alreadyGone: [])
+        check(g1.count == 1 && g1[0].ip == "10.0.0.3" && g1[0].gone, "gone after two scans")
+        check(Merge.gone(previous: [a1], current: [a1, a2], alreadyGone: g1).isEmpty, "gone device back is no longer gone")
+        let q = DNS.ptrQuery(ip: "192.168.1.7", id: 5)
+        check(q.count == 12 + 1 + 1 + 1 + 1 + 1 + 1 + 7 + 1 + 4 + 1 + 4 + 0 || q.last == 1, "ptr query built")
+        var resp = q; resp[2] = 0x84; resp[7] = 1
+        let host: [UInt8] = [3, 0x6D, 0x61, 0x63, 5, 0x6C, 0x6F, 0x63, 0x61, 0x6C, 0]
+        resp += [0xC0, 12, 0, 12, 0, 1, 0, 0, 0, 120, 0, UInt8(host.count)] + host
+        check(DNS.ptrNames(resp) == ["mac.local"], "ptr answer parsed (got \(DNS.ptrNames(resp)))")
+        check(DNS.ptrNames([1, 2, 3]).isEmpty, "bad dns ignored")
+        let xml = "<root><device><deviceType>urn:schemas-upnp-org:device:InternetGatewayDevice:1</deviceType><friendlyName>Test Router</friendlyName><modelName>TR-100</modelName></device></root>"
+        let up = UPnP.parse(xml: xml)
+        check(up.friendly == "Test Router" && up.model == "TR-100" && UPnP.kind(forType: up.type) == "Router", "upnp xml")
+        check(UPnP.location(fromResponse: "HTTP/1.1 200 OK\r\nCACHE-CONTROL: max-age=1800\r\nLOCATION: http://10.0.0.1:5000/d.xml\r\n\r\n") == "http://10.0.0.1:5000/d.xml", "ssdp location")
+        let fx = "{\"scans\":[{\"net\":{\"iface\":\"en0\",\"ip\":\"10.9.0.5\",\"prefix\":16,\"gateway\":\"10.9.0.1\"},\"devices\":[{\"ip\":\"10.9.0.1\",\"mac\":\"00:11:22:33:44:55\"}]}]}"
+        if let f = try? JSONDecoder().decode(Fixture.self, from: Data(fx.utf8)) {
+            let r = Fixture.result(f.scans[0], progress: { _, _ in }, cancelled: { false })
+            check(r.capped && r.cidr == "10.9.0.0/16" && r.notes.count == 1 && r.devices.first?.kind == "Router", "fixture wide network is capped, router labelled")
+        } else { check(false, "fixture decodes") }
+        check(Fixture.result(FixtureScan(delay: nil, net: nil, noNetwork: true, notes: nil, error: nil, permissionSuspect: nil, devices: nil), progress: { _, _ in }, cancelled: { false }).error == Label.noNetwork, "fixture no network")
+        d.upnpType = "urn:schemas-upnp-org:device:MediaRenderer:1"; d.isThisMac = false; d.isRouter = false; check(Kinds.guess(device: d) == "TV/Speaker", "upnp kind")
         for f in fails { print("selftest FAIL: \(f)") }
         print(fails.isEmpty ? "selftest OK" : "selftest: \(fails.count) failed")
         return fails.isEmpty

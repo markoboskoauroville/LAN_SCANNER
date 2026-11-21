@@ -3,8 +3,9 @@
 import Cocoa
 import SwiftUI
 
-let VERSION = 1
+let VERSION = 2
 let APP_NAME = "LAN Scanner (Mantra)"
+enum Debug { static var forcePermission = false }
 let LOCAL_NETWORK_PANE = "x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork"
 
 // MARK: look (Mantra design language ground: dark, warm ink, monospace; amber for what needs the person)
@@ -45,6 +46,17 @@ final class ScanState: ObservableObject {
     func scan() {
         guard !running else { return }
         running = true; progress = 0; phase = "Starting"; cancel.value = false; error = nil; copied = ""
+        if let fx = Fixture.current, let step = Fixture.next() {
+            net = step.net.map { Fixture.info($0) }
+            others = (fx.others ?? []).map { Fixture.info($0) }
+            let flag = cancel
+            DispatchQueue.global(qos: .userInitiated).async {
+                var r = Fixture.result(step, progress: { p, s in DispatchQueue.main.async { self.progress = p; self.phase = s } }, cancelled: { flag.value })
+                if Debug.forcePermission { r.permissionSuspect = true; r.error = "Cannot reach the network. Local Network access is probably off for this app: click PERMISSIONS and switch it on." }
+                DispatchQueue.main.async { self.finish(r) }
+            }
+            return
+        }
         let list = Net.activeInterfaces()
         let chosen = chosenIface.flatMap { n in list.first { $0.iface == n } } ?? Net.current(from: list)
         net = chosen
@@ -55,7 +67,9 @@ final class ScanState: ObservableObject {
             let r = LanScanner.scan(net: chosen, bonjour: bj, progress: { p, s in
                 DispatchQueue.main.async { self.progress = p; self.phase = s }
             }, cancelled: { flag.value })
-            DispatchQueue.main.async { bj.stop(); self.finish(r) }
+            DispatchQueue.main.async { bj.stop(); var r = r
+                if Debug.forcePermission { r.permissionSuspect = true; r.error = "Cannot reach the network. Local Network access is probably off for this app: click PERMISSIONS and switch it on." }
+                self.finish(r) }
         }
     }
 
@@ -65,10 +79,7 @@ final class ScanState: ObservableObject {
         running = false
         error = r.error; notes = r.notes; permissionSuspect = r.permissionSuspect; cidr = r.cidr
         if r.error == "Stopped." { return }
-        let nowKeys = Set(r.devices.map { $0.ip })
-        var g = gone.filter { !nowKeys.contains($0.ip) }
-        for d in devices where !nowKeys.contains(d.ip) && !g.contains(where: { $0.ip == d.ip }) { var x = d; x.gone = true; g.append(x) }
-        gone = g
+        gone = Merge.gone(previous: devices, current: r.devices, alreadyGone: gone)
         devices = r.devices
         scanned = Date()
     }
@@ -134,7 +145,8 @@ struct Row: View {
     var body: some View {
         let c = d.gone ? Look.dim : Look.ink
         let label = d.isThisMac ? "This Mac" : d.isRouter ? "Router" : ""
-        let name = d.name.isEmpty ? (label.isEmpty ? "unknown" : label) : (label.isEmpty ? d.name : "\(d.name) (\(label))")
+        let base = d.displayName
+        let name = label.isEmpty ? base : (d.name.isEmpty ? label : "\(d.name) (\(label))")
         let seen = d.gone ? "gone \(Row.f.string(from: d.seen))" : Row.f.string(from: d.seen)
         Button { state.copy(d) } label: {
             HStack(alignment: .top, spacing: 12) {
@@ -301,7 +313,7 @@ enum Headless {
                 "network": r.net?.title ?? "", "interface": r.net?.iface ?? "", "ip": r.net?.ip ?? "",
                 "cidr": r.cidr, "gateway": r.net?.gateway ?? "", "deviceCount": r.devices.count,
                 "notes": r.notes, "permissionSuspect": r.permissionSuspect,
-                "devices": r.devices.map { ["ip": $0.ip, "mac": $0.mac, "name": $0.name, "maker": $0.maker, "kind": $0.kind] },
+                "devices": r.devices.map { ["ip": $0.ip, "mac": $0.mac, "name": $0.name, "label": $0.displayName, "maker": $0.maker, "kind": $0.kind] },
             ]
             if let e = r.error { o["error"] = e }
             if let d = try? JSONSerialization.data(withJSONObject: o, options: [.prettyPrinted, .sortedKeys]) {
@@ -320,6 +332,11 @@ struct Entry {
         let a = CommandLine.arguments
         if a.contains("--selftest") { exit(SelfTest.run() ? 0 : 1) }
         if a.contains("--version") { print(VERSION); exit(0) }
+        if a.contains("--debug-permission") { Debug.forcePermission = true }
+        if let i = a.firstIndex(of: "--fixture"), i + 1 < a.count {
+            guard let f = Fixture.load(a[i + 1]) else { print("cannot read fixture \(a[i + 1])"); exit(4) }
+            Fixture.current = f
+        }
         if a.contains("--json") {
             let i = a.firstIndex(of: "--iface").flatMap { $0 + 1 < a.count ? a[$0 + 1] : nil }
             Headless.json(iface: i)
