@@ -209,7 +209,7 @@ struct MainView: View {
             }
         }
         .padding(.horizontal, 20).padding(.bottom, 12)
-        .frame(minWidth: 800, maxWidth: .infinity, minHeight: 380, maxHeight: .infinity, alignment: .topLeading)
+        .frame(minWidth: 740, maxWidth: .infinity, minHeight: 340, maxHeight: .infinity, alignment: .topLeading)
         .background(Look.ground)
     }
 }
@@ -228,10 +228,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         w.titleVisibility = .hidden
         w.titlebarAppearsTransparent = true
         w.backgroundColor = NSColor(red: 0.043, green: 0.051, blue: 0.063, alpha: 1)
-        w.contentMinSize = NSSize(width: 840, height: 400)
         let host = NSHostingView(rootView: MainView(state: state))
         host.sizingOptions = []
         w.contentView = host
+        w.contentMinSize = NSSize(width: 760, height: 360)   // after the content view is set, or it is reset
         w.setFrameAutosaveName("LanScannerMainWindow")
         w.delegate = self
         window = w
