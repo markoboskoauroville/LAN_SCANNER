@@ -108,6 +108,7 @@ struct HoverWord: View {
         .onHover { hover = $0 }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { action() }
         .accessibilityIdentifier(id).accessibilityLabel(label)
     }
 }
@@ -149,6 +150,7 @@ struct Row: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { state.copy(d) }
         .accessibilityIdentifier("row-\(d.ip)")
         .accessibilityLabel("\(name), \(d.ip), \(d.mac), \(d.maker), \(d.kind), \(seen)")
     }
