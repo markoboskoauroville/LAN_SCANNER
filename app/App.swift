@@ -226,6 +226,7 @@ struct MainView: View {
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let state = ScanState()
     var window: NSWindow?
+    static let minContent = NSSize(width: 760, height: 360)
 
     func makeWindow() -> NSWindow {
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 920, height: 560),
@@ -237,7 +238,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let host = NSHostingView(rootView: MainView(state: state))
         host.sizingOptions = []
         w.contentView = host
-        w.contentMinSize = NSSize(width: 760, height: 360)   // after the content view is set, or it is reset
+        w.contentMinSize = Self.minContent   // after the content view is set, or it is reset
         w.setFrameAutosaveName("LanScannerMainWindow")
         w.delegate = self
         window = w
@@ -271,7 +272,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     func windowDidBecomeKey(_ notification: Notification) { enforceOneTitle() }
     func windowDidResignKey(_ notification: Notification) { enforceOneTitle() }
-    func windowDidResize(_ notification: Notification) { enforceOneTitle() }
+    func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+        let m = sender.frameRect(forContentRect: NSRect(origin: .zero, size: Self.minContent)).size   // nothing is ever cut: below this size the table would be
+        return NSSize(width: max(frameSize.width, m.width), height: max(frameSize.height, m.height))
+    }
+    func windowDidResize(_ notification: Notification) {
+        if let w = window, w.contentLayoutRect.width < Self.minContent.width - 0.5 || w.contentLayoutRect.height < Self.minContent.height - 0.5 {
+            w.setContentSize(NSSize(width: max(w.contentLayoutRect.width, Self.minContent.width), height: max(w.contentLayoutRect.height, Self.minContent.height)))
+        }
+        enforceOneTitle()
+    }
     func windowDidEnterFullScreen(_ notification: Notification) { enforceOneTitle() }
     func windowDidExitFullScreen(_ notification: Notification) { enforceOneTitle() }
 }
